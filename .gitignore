@@ -1,0 +1,12 @@
+# Uploaded files (user documents — not committed)
+uploads/*
+!uploads/.gitkeep
+
+# Environment / secrets
+.env
+
+# macOS
+.DS_Store
+
+# PHP logs
+*.log
