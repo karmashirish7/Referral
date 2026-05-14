@@ -26,17 +26,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbname = trim($_POST['db_name'] ?? 'referral_portal');
 
     // Step 1: test connection without selecting a database
-    try {
-        $pdo = new PDO(
-            "mysql:host=$host;charset=utf8mb4",
-            $user, $pass,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-    } catch (PDOException $e) {
-        $error = "Cannot connect to MySQL: " . $e->getMessage();
+    // If host is 'localhost', also try '127.0.0.1' as fallback (avoids Unix socket issues on Mac/Linux)
+    $triedHosts = [$host];
+    if ($host === 'localhost') $triedHosts[] = '127.0.0.1';
+
+    $pdo = null;
+    foreach ($triedHosts as $tryHost) {
+        try {
+            $pdo  = new PDO(
+                "mysql:host=$tryHost;charset=utf8mb4",
+                $user, $pass,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+            $host = $tryHost; // use whichever host worked
+            break;
+        } catch (PDOException $e) {
+            $lastEx = $e;
+        }
     }
 
-    if (!$error) {
+    if (!$pdo) {
+        $rawMsg = $lastEx->getMessage();
+        if (strpos($rawMsg, '2002') !== false) {
+            $error = "MySQL is not running on this computer (or not installed).<br>"
+                   . "Please start MySQL first, then try again.<br><br>"
+                   . "<strong>How to start MySQL:</strong><br>"
+                   . "• XAMPP → open XAMPP Control Panel → click <em>Start</em> next to MySQL<br>"
+                   . "• MAMP → open MAMP → click <em>Start Servers</em><br>"
+                   . "• Mac (Homebrew) → run: <code>brew services start mysql</code><br>"
+                   . "• Windows (standalone) → run: <code>net start MySQL80</code><br><br>"
+                   . "<em>Technical detail: $rawMsg</em>";
+        } elseif (strpos($rawMsg, '1045') !== false) {
+            $error = "Access denied — wrong username or password. Check your MySQL credentials and try again.<br><em>$rawMsg</em>";
+        } else {
+            $error = "Cannot connect to MySQL: $rawMsg";
+        }
+    }
+
+    if (!$error && $pdo) {
         // Step 2: create database if it doesn't exist
         try {
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -143,17 +170,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <div class="defaults-note">
-            <strong><i class="bi bi-info-circle"></i> Common MySQL defaults</strong>
-            Host: <code>localhost</code> &nbsp;|&nbsp;
-            User: <code>root</code> &nbsp;|&nbsp;
-            Password: <em>blank (XAMPP/MAMP) or whatever you set</em>
+            <strong><i class="bi bi-info-circle"></i> Before you start — make sure MySQL is running</strong>
+            • XAMPP: open Control Panel → click <strong>Start</strong> next to MySQL<br>
+            • MAMP: open MAMP → click <strong>Start Servers</strong><br>
+            • Homebrew (Mac): <code>brew services start mysql</code><br>
+            • Default user: <code>root</code> &nbsp;|&nbsp; Default password: <em>blank</em>
         </div>
 
         <form method="POST">
             <div class="form-group">
                 <label>Database Host</label>
-                <input type="text" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? 'localhost') ?>" required>
-                <div class="hint">Usually <code>localhost</code></div>
+                <input type="text" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? '127.0.0.1') ?>" required>
+                <div class="hint">Use <code>127.0.0.1</code> (recommended) or <code>localhost</code></div>
             </div>
             <div class="form-group">
                 <label>MySQL Username</label>
