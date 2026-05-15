@@ -1,428 +1,535 @@
 """
-Referral Network Portal — Manual Generator
-Run:  pip install python-docx  (if not installed)
+Referral Network Portal — Manual Generator (Supabase Edition)
+Run:  pip install python-docx
       python3 generate_manual.py
-Output: MANUAL.docx in the same folder
+Output: MANUAL.docx
 """
 
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
 import datetime
 
-NAVY = RGBColor(0x1F, 0x38, 0x64)
+NAVY  = RGBColor(0x1F, 0x38, 0x64)
+GREEN = RGBColor(0x05, 0x96, 0x69)
+RED   = RGBColor(0xDC, 0x26, 0x26)
 
 doc = Document()
 
-# ── Page margins ─────────────────────────────────────────────
 for section in doc.sections:
     section.top_margin    = Cm(2)
     section.bottom_margin = Cm(2)
     section.left_margin   = Cm(2.5)
     section.right_margin  = Cm(2.5)
 
-# ── Helpers ───────────────────────────────────────────────────
-def heading1(text):
+# ── Helpers ──────────────────────────────────────────────────────
+
+def h1(text):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(18)
+    p.paragraph_format.space_before = Pt(20)
     p.paragraph_format.space_after  = Pt(6)
-    run = p.add_run(text)
-    run.bold      = True
-    run.font.size = Pt(16)
-    run.font.color.rgb = NAVY
+    r = p.add_run(text)
+    r.bold = True; r.font.size = Pt(16); r.font.color.rgb = NAVY
     return p
 
-def heading2(text):
+def h2(text):
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(12)
     p.paragraph_format.space_after  = Pt(4)
-    run = p.add_run(text)
-    run.bold      = True
-    run.font.size = Pt(13)
-    run.font.color.rgb = NAVY
+    r = p.add_run(text)
+    r.bold = True; r.font.size = Pt(13); r.font.color.rgb = NAVY
     return p
 
 def body(text):
     p = doc.add_paragraph(text)
     p.paragraph_format.space_after = Pt(4)
-    p.runs[0].font.size = Pt(11)
+    if p.runs: p.runs[0].font.size = Pt(11)
     return p
 
 def bullet(text):
     p = doc.add_paragraph(style='List Bullet')
-    run = p.add_run(text)
-    run.font.size = Pt(11)
+    r = p.add_run(text)
+    r.font.size = Pt(11)
     p.paragraph_format.space_after = Pt(2)
     return p
 
 def code(text):
     p = doc.add_paragraph()
-    run = p.add_run(text)
-    run.font.name = 'Courier New'
-    run.font.size = Pt(9)
-    run.font.color.rgb = RGBColor(0x0d, 0x6e, 0x6e)
+    r = p.add_run(text)
+    r.font.name = 'Courier New'
+    r.font.size = Pt(9)
+    r.font.color.rgb = RGBColor(0x05, 0x6b, 0x6b)
     p.paragraph_format.left_indent = Inches(0.4)
     p.paragraph_format.space_after = Pt(2)
     return p
 
-def note(text):
+def note(text, colour=None):
     p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Inches(0.3)
-    p.paragraph_format.space_after  = Pt(4)
-    run = p.add_run("⚠ Note: " + text)
-    run.font.size   = Pt(10)
-    run.italic      = True
-    run.font.color.rgb = RGBColor(0xd9, 0x77, 0x06)
+    p.paragraph_format.left_indent = Inches(0.3)
+    p.paragraph_format.space_after = Pt(6)
+    r = p.add_run("⚠  " + text)
+    r.font.size = Pt(10); r.italic = True
+    r.font.color.rgb = colour or RGBColor(0xD9, 0x77, 0x06)
+    return p
+
+def tip(text):
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent = Inches(0.3)
+    p.paragraph_format.space_after = Pt(6)
+    r = p.add_run("✅  " + text)
+    r.font.size = Pt(10); r.italic = True
+    r.font.color.rgb = GREEN
     return p
 
 def divider():
-    doc.add_paragraph("─" * 80)
+    doc.add_paragraph("─" * 90)
 
-# ═══════════════════════════════════════════════════════════════
+def table2(headers, rows):
+    t = doc.add_table(rows=1, cols=len(headers))
+    t.style = 'Table Grid'
+    hdr = t.rows[0].cells
+    for i, h in enumerate(headers): hdr[i].text = h
+    for row in rows:
+        r = t.add_row().cells
+        for i, v in enumerate(row): r[i].text = str(v)
+    return t
+
+# ════════════════════════════════════════════════════════════════
 # TITLE PAGE
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 title = doc.add_paragraph()
 title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-title.paragraph_format.space_before = Pt(40)
+title.paragraph_format.space_before = Pt(48)
 r = title.add_run("Referral Network Portal")
-r.bold = True; r.font.size = Pt(26); r.font.color.rgb = NAVY
+r.bold = True; r.font.size = Pt(28); r.font.color.rgb = NAVY
 
 sub = doc.add_paragraph()
 sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r2 = sub.add_run("Administrator & Developer Manual")
+r2 = sub.add_run("Administrator & Developer Manual  —  Supabase Edition")
 r2.font.size = Pt(14); r2.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
 
 doc.add_paragraph()
-date_p = doc.add_paragraph()
-date_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-date_p.add_run(f"Generated: {datetime.date.today().strftime('%d %B %Y')}").font.size = Pt(10)
+dp = doc.add_paragraph()
+dp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+dp.add_run(f"Version 2.0  ·  Generated {datetime.date.today().strftime('%d %B %Y')}").font.size = Pt(10)
+
+doc.add_paragraph()
+tag = doc.add_paragraph()
+tag.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r3 = tag.add_run("Australian Mortgage & Real Estate Sector  ·  Industry Capstone Project")
+r3.font.size = Pt(10); r3.italic = True; r3.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
 
 doc.add_page_break()
 
-# ═══════════════════════════════════════════════════════════════
-# TABLE OF CONTENTS (manual)
-# ═══════════════════════════════════════════════════════════════
-heading1("Table of Contents")
-toc_items = [
-    ("1", "Overview"),
-    ("2", "System Requirements"),
-    ("3", "Installation & Setup"),
-    ("4", "Database Configuration"),
-    ("5", "Default Login Accounts"),
-    ("6", "File Structure"),
-    ("7", "Changing the Primary Colour"),
-    ("8", "Adding / Modifying Referral Statuses"),
-    ("9", "Changing Commission Rates & Tiers"),
-    ("10","Adding New Loan Types"),
-    ("11","Changing Database Credentials"),
-    ("12","User Role Management"),
-    ("13","File Upload Settings"),
-    ("14","Adding New Pages"),
-    ("15","Email Notifications"),
-    ("16","Compliance Notes (Privacy Act 1988)"),
-    ("17","Troubleshooting"),
+# ════════════════════════════════════════════════════════════════
+# TABLE OF CONTENTS
+# ════════════════════════════════════════════════════════════════
+h1("Table of Contents")
+toc = [
+    ("1",  "Overview & Key Features"),
+    ("2",  "System Requirements"),
+    ("3",  "Setting Up Supabase (Database)"),
+    ("4",  "Installation on Any Computer"),
+    ("5",  "Default Login Accounts"),
+    ("6",  "File Structure"),
+    ("7",  "User Roles & Permissions"),
+    ("8",  "Changing the Primary Colour"),
+    ("9",  "Adding / Modifying Referral Statuses"),
+    ("10", "Commission Rates & Tiers"),
+    ("11", "Adding New Loan Types"),
+    ("12", "Changing Database Credentials"),
+    ("13", "File Upload Settings"),
+    ("14", "Adding New Pages"),
+    ("15", "Email Notifications"),
+    ("16", "Compliance Notes (Privacy Act 1988 / Spam Act 2003)"),
+    ("17", "Troubleshooting"),
 ]
-for num, title_text in toc_items:
+for num, t in toc:
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(2)
-    p.add_run(f"{num}.  {title_text}").font.size = Pt(11)
+    p.add_run(f"  {num}.  {t}").font.size = Pt(11)
 
 doc.add_page_break()
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 1. OVERVIEW
-# ═══════════════════════════════════════════════════════════════
-heading1("1. Overview")
-body("The Referral Network Portal is a PHP + MySQL web application for managing partner referrals in the Australian mortgage and real estate sector. It replaces manual spreadsheets and email tracking with a centralised digital system.")
-body("Built for the Industry Capstone Project, the portal supports four user roles, commission-tier calculations, a broker Kanban pipeline, and a full audit trail for Privacy Act 1988 compliance.")
+# ════════════════════════════════════════════════════════════════
+h1("1. Overview & Key Features")
+body("The Referral Network Portal is a web application that manages partner referrals for Australian mortgage brokerages. It replaces spreadsheets and email tracking with a centralised digital system compliant with the Privacy Act 1988.")
+body("The system uses PHP for the backend and Supabase (PostgreSQL) as the cloud database — meaning the data is always online and accessible from any computer without local database setup.")
 
-heading2("Key Features")
-for f in [
-    "Partner dashboard with live stats and monthly chart",
-    "Referral submission form with client consent (Privacy Act 1988)",
+h2("Key Features")
+features = [
+    "Partner dashboard — live stats, monthly referral chart, commission summary",
     "6-stage referral tracking: Pending → Qualified → Lodged → Approved → Settled → Declined",
     "Automatic commission calculation: Broker Upfront × Tier Rate (Gold 25%, Silver 20%, Bronze 15%)",
-    "Broker Kanban pipeline view",
-    "Admin panel: approve users, set tiers, override commissions",
-    "Auditor view: full read-only audit log (CSV export)",
-    "In-app notifications + CSV export for referrals and audit log",
-    "File upload (PDF, DOCX, XLSX) per referral",
-]:
-    bullet(f)
+    "Broker Kanban pipeline view (6 columns)",
+    "Admin panel — approve users, manage tiers, override commissions",
+    "Auditor view — full read-only audit log with CSV export",
+    "In-app notifications on every status change",
+    "File upload (PDF, DOCX, XLSX) attached to referrals",
+    "Role-based access: Partner, Broker, Admin, Auditor",
+    "Privacy Act 1988 compliant — client consent checkbox with timestamp, 7-year audit trail",
+    "Cloud database via Supabase — works from any computer, no local MySQL needed",
+]
+for f in features: bullet(f)
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 2. SYSTEM REQUIREMENTS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("2. System Requirements")
-for req in [
-    "PHP 8.1 or higher (PHP 8.2 recommended)",
-    "MySQL 8.0 or higher (or MariaDB 10.6+)",
-    "Apache or Nginx web server (with mod_rewrite for Apache)",
-    "A local server like XAMPP, MAMP, Laragon, or WAMP (Windows)",
-    "Web browser: Chrome, Firefox, Safari, or Edge (latest versions)",
+h1("2. System Requirements")
+body("Because the database is hosted on Supabase (cloud), you only need PHP and an internet connection on each computer.")
+
+table2(
+    ["Requirement", "Details"],
+    [
+        ["PHP",            "Version 8.1 or higher (8.2 recommended). Must include pdo_pgsql extension."],
+        ["Web server",     "PHP built-in server (php -S) for development, or Apache/Nginx for production."],
+        ["Supabase account","Free account at supabase.com — one project shared by all computers."],
+        ["Internet",       "Required to reach the Supabase cloud database."],
+        ["Browser",        "Chrome, Firefox, Safari, or Edge (latest version)."],
+        ["No local MySQL", "MySQL is NOT needed. Supabase replaces it entirely."],
+    ]
+)
+
+h2("Checking pdo_pgsql is installed")
+body("Run this in a terminal to confirm the PostgreSQL driver is available:")
+code("php -m | grep pgsql")
+body("You should see pgsql and pdo_pgsql in the output. If not:")
+code("# Mac (Homebrew):    brew install php")
+code("# Ubuntu/Debian:     sudo apt install php-pgsql")
+code("# Windows (XAMPP):   enable extension=pdo_pgsql in php.ini")
+
+# ════════════════════════════════════════════════════════════════
+# 3. SETTING UP SUPABASE
+# ════════════════════════════════════════════════════════════════
+doc.add_page_break()
+h1("3. Setting Up Supabase (Database)  —  Do This Once")
+body("Supabase is a free cloud PostgreSQL database. You only set this up once; all computers then connect to the same database.")
+
+h2("Step 1 — Create a Supabase account and project")
+for s in [
+    "Go to https://supabase.com and sign up for a free account.",
+    'Click "New Project". Choose a name (e.g. "ReferralPortal") and set a strong database password. Save this password — you will need it.',
+    "Wait ~2 minutes for the project to be created.",
 ]:
-    bullet(req)
-note("XAMPP is the easiest option for local development. Download from https://www.apachefriends.org")
+    bullet(s)
 
-# ═══════════════════════════════════════════════════════════════
-# 3. INSTALLATION & SETUP
-# ═══════════════════════════════════════════════════════════════
+h2("Step 2 — Import the database schema")
+for s in [
+    'In your Supabase project, click "SQL Editor" in the left sidebar.',
+    'Click "New Query".',
+    "Open the file database.sql from this project folder. Select all the text (Ctrl+A / Cmd+A) and copy it.",
+    'Paste it into the SQL Editor and click "Run".',
+    'You should see "Success. No rows returned." — this means all tables and sample data were created.',
+]:
+    bullet(s)
+note("Only run database.sql once. Running it again is safe (it uses ON CONFLICT DO NOTHING) but will not re-insert data that already exists.")
+
+h2("Step 3 — Find your connection details")
+body("Go to: Supabase Dashboard → Project Settings (gear icon) → Database → Connection parameters")
+table2(
+    ["Field", "Where to find it", "Example value"],
+    [
+        ["Host",     "Connection parameters → Host",     "db.abcdefghijkl.supabase.co"],
+        ["Port",     "Always 5432",                       "5432"],
+        ["Database", "Always 'postgres'",                 "postgres"],
+        ["User",     "Always 'postgres'",                 "postgres"],
+        ["Password", "The password you set in Step 1",    "your-secret-password"],
+    ]
+)
+tip("Copy the Host value carefully — it is a long string like db.abcdefghijkl.supabase.co")
+
+# ════════════════════════════════════════════════════════════════
+# 4. INSTALLATION ON ANY COMPUTER
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("3. Installation & Setup")
+h1("4. Installation on Any Computer")
+body("Every computer that runs the portal follows the same 4 steps. The database is already set up in Supabase — you just need to connect to it.")
 
-heading2("Step 1 — Copy Files")
-body("Copy the entire project folder into your web server's document root:")
-code("XAMPP (Windows):  C:\\xampp\\htdocs\\REFERRAL\\")
-code("XAMPP (Mac):      /Applications/XAMPP/htdocs/REFERRAL/")
-code("MAMP (Mac):       /Applications/MAMP/htdocs/REFERRAL/")
+h2("Step 1 — Get the project files")
+body("Option A — Clone from GitHub (recommended):")
+code("git clone https://github.com/karmashirish7/Referral")
+code("cd Referral")
+body("Option B — Download the ZIP from GitHub and extract it.")
 
-heading2("Step 2 — Create the Database")
-body("Open phpMyAdmin (http://localhost/phpmyadmin) and run the SQL file:")
-code("File:  REFERRAL/database.sql")
-body("Or via command line:")
-code("mysql -u root -p < database.sql")
+h2("Step 2 — Start the PHP web server")
+code("php -S localhost:8080")
+body("Keep this terminal window open while using the portal. To stop the server, press Ctrl+C.")
+note("If port 8080 is in use, change it: php -S localhost:9000")
 
-heading2("Step 3 — Configure Database Credentials")
-body("Open includes/db.php and update your MySQL credentials (see Section 11).")
+h2("Step 3 — Run the installer")
+for s in [
+    "Open a browser and go to:  http://localhost:8080/install.php",
+    "The Setup Wizard will appear. Enter your Supabase connection details from Section 3.",
+    'Click "Connect & Save".',
+    "If successful, you will see a green confirmation screen.",
+]:
+    bullet(s)
 
-heading2("Step 4 — Set Uploads Folder Permissions")
-body("Make sure the uploads/ folder is writable by the web server:")
-code("chmod 775 uploads/    (Linux/Mac)")
-body("On Windows with XAMPP, this is automatic.")
+h2("Step 4 — Log in")
+body("Go to http://localhost:8080 and log in with any of the default accounts (see Section 5).")
+tip("The installer creates a config.php file locally with your credentials. This file is in .gitignore so it is never uploaded to GitHub — each computer keeps its own copy.")
 
-heading2("Step 5 — Visit the Application")
-body("Open your browser and go to:")
-code("http://localhost/REFERRAL/")
-body("The login page will appear. Use the default accounts in Section 5.")
-
-# ═══════════════════════════════════════════════════════════════
-# 4. DATABASE CONFIGURATION
-# ═══════════════════════════════════════════════════════════════
-doc.add_page_break()
-heading1("4. Database Configuration")
-body("The database schema is in database.sql. It creates 6 tables:")
-
-rows = [
-    ["users",        "All user accounts (partner, broker, admin, auditor)"],
-    ["referrals",    "All referral records with client details and status"],
-    ["commissions",  "Commission records created when a referral is settled"],
-    ["documents",    "Uploaded files linked to referrals"],
-    ["notifications","In-app notification messages per user"],
-    ["audit_log",    "Full audit trail of every system action"],
-]
-table = doc.add_table(rows=1, cols=2)
-table.style = 'Table Grid'
-hdr = table.rows[0].cells
-hdr[0].text = "Table"; hdr[1].text = "Purpose"
-for row in rows:
-    r = table.add_row().cells
-    r[0].text = row[0]; r[1].text = row[1]
-
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 5. DEFAULT LOGIN ACCOUNTS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("5. Default Login Accounts")
-note("All default passwords are:  password   Change them immediately in production!")
+h1("5. Default Login Accounts")
+note("All default passwords are:  password   Change them immediately before real use!")
 
-accounts = [
-    ["Admin User",    "admin@networkportal.com",  "admin",   "Full system access"],
-    ["James Broker",  "broker@networkportal.com", "broker",  "Pipeline, status updates"],
-    ["Alex Thompson", "alex@partner.com",         "partner", "Submit referrals, view commissions"],
-    ["Lisa Audit",    "auditor@networkportal.com","auditor", "Read-only audit log"],
-]
-table2 = doc.add_table(rows=1, cols=4)
-table2.style = 'Table Grid'
-hdr2 = table2.rows[0].cells
-for i, h in enumerate(["Name","Email","Role","Access"]):
-    hdr2[i].text = h
-for acc in accounts:
-    r = table2.add_row().cells
-    for i, v in enumerate(acc): r[i].text = v
+table2(
+    ["Name", "Email", "Role", "Access Level"],
+    [
+        ["Admin User",    "admin@networkportal.com",  "Admin",   "Full system access — users, commissions, audit log"],
+        ["James Broker",  "broker@networkportal.com", "Broker",  "Pipeline, status updates, broker notes"],
+        ["Alex Thompson", "alex@partner.com",         "Partner", "Submit referrals, view own commissions"],
+        ["Sarah Chen",    "sarah@partner.com",        "Partner", "Submit referrals, view own commissions"],
+        ["Lisa Audit",    "auditor@networkportal.com","Auditor", "Read-only audit log and referral history"],
+    ]
+)
 
-heading2("How to Change a Password via phpMyAdmin")
-body("1. Open phpMyAdmin → referral_portal → users table.")
-body("2. Click Edit on the user row.")
-body("3. Find the password column. Replace the hash with a new bcrypt hash.")
-body("Generate a new bcrypt hash with PHP:")
-code("<?php echo password_hash('your_new_password', PASSWORD_DEFAULT); ?>")
-body("Paste the output (the long $2y$... string) into the password column and save.")
+h2("How to change a password")
+body("Log in → click Settings in the sidebar → Change Password section. Enter your current password and a new one (minimum 8 characters).")
 
-# ═══════════════════════════════════════════════════════════════
+h2("How to reset a password via Supabase SQL Editor")
+body("If you are locked out, go to Supabase → SQL Editor and run:")
+code("UPDATE users")
+code("SET password = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'")
+code("WHERE email = 'your@email.com';")
+body("This resets the password back to:  password")
+body("Then log in and change it immediately via Settings.")
+
+# ════════════════════════════════════════════════════════════════
 # 6. FILE STRUCTURE
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("6. File Structure")
-files = [
-    ("index.php",              "Login page"),
-    ("register.php",           "New account registration"),
-    ("logout.php",             "Destroys session, redirects to login"),
-    ("dashboard.php",          "Partner dashboard with stats and chart"),
-    ("referrals.php",          "Referral list with filters and CSV export"),
-    ("submit-referral.php",    "New referral submission form"),
-    ("pipeline.php",           "Broker Kanban pipeline (6 columns)"),
-    ("admin-users.php",        "Admin: approve/suspend users, set tier"),
-    ("admin-commissions.php",  "Admin: mark commissions paid, override amounts"),
-    ("audit.php",              "Admin/Auditor: full audit log with filters"),
-    ("documents.php",          "View and upload referral documents"),
-    ("settings.php",           "Update profile, change password"),
-    ("notifications.php",      "View all in-app notifications"),
-    ("database.sql",           "MySQL schema and sample data"),
-    ("includes/db.php",        "Database connection — EDIT THIS for credentials"),
-    ("includes/auth.php",      "Session helpers (isLoggedIn, requireRole, etc.)"),
-    ("includes/functions.php", "Helper functions (commission calc, badges, audit log)"),
-    ("includes/sidebar.php",   "Role-aware left sidebar component"),
-    ("assets/css/style.css",   "All custom styles"),
-    ("assets/js/main.js",      "JavaScript: notifications, file upload, confirmations"),
-    ("uploads/",               "Uploaded documents stored here (writable)"),
-]
-table3 = doc.add_table(rows=1, cols=2)
-table3.style = 'Table Grid'
-h = table3.rows[0].cells; h[0].text = "File / Folder"; h[1].text = "Purpose"
-for f, d in files:
-    r = table3.add_row().cells; r[0].text = f; r[1].text = d
+h1("6. File Structure")
+table2(
+    ["File / Folder", "Purpose"],
+    [
+        ("index.php",               "Login page — role selector, email, password"),
+        ("register.php",            "New partner/broker registration form"),
+        ("logout.php",              "Destroys session and redirects to login"),
+        ("dashboard.php",           "Partner dashboard — stats, chart, pipeline, payouts"),
+        ("referrals.php",           "Referral list for all roles — filters, CSV export"),
+        ("submit-referral.php",     "New referral form — client details, consent, file upload"),
+        ("pipeline.php",            "Broker Kanban board — 6 stage columns"),
+        ("admin-users.php",         "Admin: approve/suspend users, add user, set tier"),
+        ("admin-commissions.php",   "Admin: mark commissions paid, override amounts"),
+        ("audit.php",               "Admin/Auditor: full audit trail with filters and CSV export"),
+        ("documents.php",           "View and upload files attached to referrals"),
+        ("settings.php",            "Update profile, change password, email preferences"),
+        ("notifications.php",       "View all in-app notifications"),
+        ("install.php",             "Supabase setup wizard — run once per computer"),
+        ("database.sql",            "PostgreSQL schema — paste into Supabase SQL Editor once"),
+        ("config.php",              "Auto-created by installer. Contains DB credentials. NEVER commit to git."),
+        ("includes/db.php",         "Database connection using pdo_pgsql driver"),
+        ("includes/auth.php",       "Session helpers: isLoggedIn(), requireRole(), etc."),
+        ("includes/functions.php",  "Helpers: commission calc, audit log, notifications, badges"),
+        ("includes/sidebar.php",    "Role-aware left sidebar component"),
+        ("assets/css/style.css",    "All custom styles — colours, layout, cards, badges"),
+        ("assets/js/main.js",       "Notifications dropdown, file upload drag-drop, confirmations"),
+        ("uploads/",                "Uploaded referral documents stored here (local only)"),
+        ("generate_manual.py",      "Run this to regenerate MANUAL.docx after making changes"),
+    ]
+)
 
-# ═══════════════════════════════════════════════════════════════
-# 7. CHANGING THE PRIMARY COLOUR
-# ═══════════════════════════════════════════════════════════════
+note("config.php is in .gitignore and must never be committed. Each computer creates its own copy via install.php.")
+
+# ════════════════════════════════════════════════════════════════
+# 7. USER ROLES & PERMISSIONS
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("7. Changing the Primary Colour")
-body("The portal uses dark navy #1F3864 as its primary colour (from the project spec). To change it, open assets/css/style.css and edit the CSS variables at the top of the file:")
+h1("7. User Roles & Permissions")
+
+table2(
+    ["Role", "Can Do", "Cannot Do"],
+    [
+        ["Partner",
+         "Submit referrals · View own referrals · View own commissions & payouts · Upload documents · Update profile",
+         "See other partners' referrals · Change referral status · Access admin or audit sections"],
+        ["Broker",
+         "View all referrals (assigned to them) · Update referral status · Enter broker upfront commission · Add broker notes · Kanban pipeline",
+         "Approve users · Override commissions · View audit log"],
+        ["Admin",
+         "Everything above · Approve/suspend user accounts · Add new users · Change partner tier · Override commissions · Mark commissions paid · View full audit log",
+         "Nothing — full access"],
+        ["Auditor",
+         "Read-only view of audit log · Read-only view of all referrals",
+         "Cannot change any data — read-only access only"],
+    ]
+)
+
+h2("Referral Status Flow")
+body("The six statuses and who can change them:")
+table2(
+    ["Status", "Meaning", "Changed By"],
+    [
+        ["Pending",   "Newly submitted, awaiting broker review",         "Broker / Admin"],
+        ["Qualified", "Broker has spoken to client, lead is valid",       "Broker / Admin"],
+        ["Lodged",    "Finance application submitted to lender",          "Broker / Admin"],
+        ["Approved",  "Lender has approved the application",              "Broker / Admin"],
+        ["Settled",   "Loan settled — commission auto-calculated",        "Broker / Admin"],
+        ["Declined",  "Lead did not proceed",                             "Broker / Admin"],
+    ]
+)
+tip("When status is set to Settled, the broker must enter the Broker Upfront Commission amount. The system automatically calculates the partner's commission and creates a commission record.")
+
+# ════════════════════════════════════════════════════════════════
+# 8. CHANGING THE PRIMARY COLOUR
+# ════════════════════════════════════════════════════════════════
+doc.add_page_break()
+h1("8. Changing the Primary Colour")
+body("The portal uses dark navy #1F3864 as defined in the Industry Project spec. To change it, open assets/css/style.css and edit the three CSS variables at the very top of the file:")
 code(":root {")
-code("    --navy:      #1F3864;   /* main sidebar + buttons */")
-code("    --navy-dark: #172d55;   /* button hover */")
-code("    --navy-light:#2a4a7f;   /* active nav item */")
+code("    --navy:       #1F3864;   /* sidebar, buttons, headings */")
+code("    --navy-dark:  #172d55;   /* button hover state        */")
+code("    --navy-light: #2a4a7f;   /* active nav item           */")
 code("}")
-body("Change all three hex values to your desired colour. Save the file and refresh the browser.")
-note("The colour also appears inline in dashboard.php Chart.js config (backgroundColor: '#1F3864'). Update that too if you change the brand colour.")
+body("Change all three values consistently to your desired colour, save the file, and refresh the browser.")
+note("The monthly bar chart in dashboard.php also uses the colour inline. Search for '#1F3864' in dashboard.php and update those values too.")
 
-# ═══════════════════════════════════════════════════════════════
-# 8. ADDING / MODIFYING REFERRAL STATUSES
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# 9. ADDING / MODIFYING REFERRAL STATUSES
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("8. Adding / Modifying Referral Statuses")
-body("Referral statuses are defined in three places. You must update all three consistently.")
+h1("9. Adding / Modifying Referral Statuses")
+body("Statuses must be updated in three places consistently.")
 
-heading2("8a. database.sql — ENUM column")
-body("Open database.sql and find the referrals table definition. Edit the ENUM list:")
-code("status ENUM('pending','qualified','lodged','approved','settled','declined')")
-body("Add your new status inside the quotes, separated by commas, then re-run the SQL or run an ALTER TABLE command:")
-code("ALTER TABLE referrals MODIFY status ENUM('pending','qualified','lodged','approved','settled','declined','on_hold');")
+h2("9a — Update the database (Supabase SQL Editor)")
+body("Run this in Supabase → SQL Editor to add a new status (e.g. 'on_hold'):")
+code("ALTER TABLE referrals")
+code("  DROP CONSTRAINT IF EXISTS referrals_status_check;")
+code("")
+code("ALTER TABLE referrals")
+code("  ADD CONSTRAINT referrals_status_check")
+code("  CHECK (status IN ('pending','qualified','lodged','approved','settled','declined','on_hold'));")
 
-heading2("8b. includes/functions.php — statusBadge()")
-body("Find the $map array in the statusBadge() function and add your new status with a CSS class:")
+h2("9b — Update includes/functions.php — statusBadge()")
+body("Find the $map array inside statusBadge() and add the new status with a CSS class:")
 code("$map = [")
-code("    'on_hold' => 'badge-lodged',   // reuse an existing colour")
+code("    ...existing entries...,")
+code("    'on_hold' => 'badge-lodged',  // reuse an existing colour")
 code("];")
 
-heading2("8c. assets/css/style.css — new badge class (optional)")
-body("If you want a unique colour for the new status, add a CSS class in the STATUS BADGES section:")
+h2("9c — Add a CSS class (optional, assets/css/style.css)")
+body("If you want a unique colour for the new status, add it in the STATUS BADGES section:")
 code(".badge-on_hold { background: #e0f2fe; color: #0369a1; }")
 
-heading2("8d. Update dropdowns in referrals.php and pipeline.php")
-body("Search for the hardcoded status option lists in referrals.php and pipeline.php and add the new status option.")
+h2("9d — Update status dropdowns")
+body("Search all PHP files for the hardcoded status option lists and add the new status. Files affected: referrals.php, pipeline.php.")
 
-# ═══════════════════════════════════════════════════════════════
-# 9. CHANGING COMMISSION RATES & TIERS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# 10. COMMISSION RATES & TIERS
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("9. Changing Commission Rates & Tiers")
-body("The commission formula is:  Partner Commission = Broker Upfront × (Tier Rate / 100)")
+h1("10. Commission Rates & Tiers")
 
-heading2("9a. Default rates per tier")
-body("The default rates are defined in three places:")
-code("admin-users.php  →  const tierRates = {Gold:25, Silver:20, Bronze:15};  (JS modal)")
-code("register.php     →  $rate = ['Gold'=>25,'Silver'=>20,'Bronze'=>15][$tier] ?? 20;")
-code("admin-users.php  →  $rate = ['Gold'=>25,'Silver'=>20,'Bronze'=>15][$tier] ?? 20;  (PHP)")
-body("Update all three with the same values to keep them in sync.")
+h2("Commission formula")
+body("When a referral is settled, the partner commission is calculated as:")
+code("Partner Commission  =  Broker Upfront Commission  ×  (Tier Rate  ÷  100)")
+body("Example: Broker upfront = $8,500 · Partner tier = Gold (25%) → Commission = $2,125")
 
-heading2("9b. Changing a single user's rate")
-body("Log in as Admin → Users → click 'Edit Tier' next to a partner. Enter a custom rate in the 'Custom Commission Rate %' field. This overrides the tier default for that user only.")
+h2("Default tier rates")
+table2(
+    ["Tier", "Default Rate", "Typical Partner Type"],
+    [
+        ["Gold",   "25%", "High-volume or long-standing partners"],
+        ["Silver", "20%", "Standard partners (default on registration)"],
+        ["Bronze", "15%", "New or lower-volume partners"],
+    ]
+)
 
-heading2("9c. Commission formula location")
-body("The calculation is in includes/functions.php, function calculateCommission():")
+h2("Where to change default rates in code")
+body("The tier-to-rate mapping appears in three files. Update all three with the same values:")
+code("admin-users.php  (PHP):  $rate = ['Gold'=>25,'Silver'=>20,'Bronze'=>15][$tier] ?? 20;")
+code("admin-users.php  (JS):   const tierRates = {Gold:25, Silver:20, Bronze:15};")
+code("register.php     (PHP):  $rate = ['Gold'=>25,'Silver'=>20,'Bronze'=>15][$tier] ?? 20;")
+
+h2("Changing a single user's rate")
+body("Log in as Admin → Users → click Edit Tier next to a partner → enter a custom rate in the Custom Commission Rate % field. This overrides the tier default for that user only.")
+
+h2("Commission calculation function")
+body("The formula lives in includes/functions.php — function calculateCommission():")
 code("function calculateCommission($brokerUpfront, $tierRate) {")
 code("    return round($brokerUpfront * ($tierRate / 100), 2);")
 code("}")
-body("Modify this function if the formula needs to change (e.g. add a cap or a flat fee).")
+body("Modify this if the formula changes (e.g. add a cap, deduct a flat fee).")
 
-# ═══════════════════════════════════════════════════════════════
-# 10. ADDING NEW LOAN TYPES
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# 11. ADDING NEW LOAN TYPES
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("10. Adding New Loan Types")
-body("Loan types are stored as an ENUM in the database and as PHP arrays in the forms.")
+h1("11. Adding New Loan Types")
+body("Loan types are stored as a CHECK constraint in PostgreSQL and as a PHP array in the form.")
 
-heading2("Step 1 — Update the database ENUM")
-code("ALTER TABLE referrals MODIFY loan_type ENUM('Owner-Occupied','Investment','Refinance','Commercial','Construction','SMSF');")
+h2("Step 1 — Update the database constraint (Supabase SQL Editor)")
+code("ALTER TABLE referrals")
+code("  DROP CONSTRAINT IF EXISTS referrals_loan_type_check;")
+code("")
+code("-- Add your new type to this list:")
+code("ALTER TABLE referrals")
+code("  ADD CONSTRAINT referrals_loan_type_check")
+code("  CHECK (loan_type IN ('Owner-Occupied','Investment','Refinance','Commercial','Construction','SMSF'));")
 
-heading2("Step 2 — Update submit-referral.php")
-body("Find the $loanTypes array near the top of the file:")
-code("$loanTypes = ['Owner-Occupied','Investment','Refinance','Commercial','Construction'];")
-body("Add your new type to the array:")
+h2("Step 2 — Update submit-referral.php")
+body("Find the $loanTypes array near the top of the file and add your new type:")
 code("$loanTypes = ['Owner-Occupied','Investment','Refinance','Commercial','Construction','SMSF'];")
 
-# ═══════════════════════════════════════════════════════════════
-# 11. CHANGING DATABASE CREDENTIALS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# 12. CHANGING DATABASE CREDENTIALS
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("11. Changing Database Credentials")
-body("Open includes/db.php. The first four lines are the only thing you need to change:")
-code("define('DB_HOST', 'localhost');   // usually 'localhost'")
-code("define('DB_USER', 'root');        // your MySQL username")
-code("define('DB_PASS', '');            // your MySQL password")
-code("define('DB_NAME', 'referral_portal'); // database name")
-note("Never commit db.php with real credentials to a public git repository.")
+h1("12. Changing Database Credentials")
+body("Credentials are stored in config.php (auto-created by install.php). To change them, either re-run the installer or edit config.php directly:")
+code("<?php")
+code("define('DB_HOST', 'db.xxxxxxxxxxxx.supabase.co');")
+code("define('DB_PORT', '5432');")
+code("define('DB_USER', 'postgres');")
+code("define('DB_PASS', 'your-supabase-password');")
+code("define('DB_NAME', 'postgres');")
 
-# ═══════════════════════════════════════════════════════════════
-# 12. USER ROLE MANAGEMENT
-# ═══════════════════════════════════════════════════════════════
-doc.add_page_break()
-heading1("12. User Role Management")
-body("Roles are fixed to: partner, broker, admin, auditor.")
+note("config.php is in .gitignore and must NEVER be committed to GitHub. It contains your database password.")
 
-heading2("Role Permissions Summary")
-role_rows = [
-    ["Partner",  "Submit referrals, view own referrals, view own commissions and payouts, upload documents"],
-    ["Broker",   "View/update all referral statuses, enter broker upfront commission, Kanban pipeline, add notes"],
-    ["Admin",    "Everything above + approve/suspend users, change tiers, override commissions, audit log"],
-    ["Auditor",  "Read-only: audit log, all referrals (no edit access)"],
-]
-t = doc.add_table(rows=1, cols=2); t.style = 'Table Grid'
-h = t.rows[0].cells; h[0].text = "Role"; h[1].text = "Permissions"
-for row in role_rows:
-    r = t.add_row().cells; r[0].text = row[0]; r[1].text = row[1]
+h2("Re-running the installer")
+body("To reconfigure, visit:  http://localhost:8080/install.php?reinstall=1")
+body("This overwrites config.php with the new credentials.")
 
-heading2("How to change a user's role")
-body("Via phpMyAdmin: edit the user row and change the 'role' column value. Then update the 'status' to 'active' if needed.")
-note("There is no admin UI for changing roles — use phpMyAdmin directly. This is intentional to prevent accidental privilege escalation.")
+h2("Rotating your Supabase password")
+for s in [
+    "Go to Supabase Dashboard → Project Settings → Database → Reset database password.",
+    "Copy the new password.",
+    "On each computer, run install.php?reinstall=1 or edit config.php with the new password.",
+]:
+    bullet(s)
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 13. FILE UPLOAD SETTINGS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("13. File Upload Settings")
+h1("13. File Upload Settings")
 
-heading2("Allowed File Types")
-body("Currently allowed: PDF, DOCX, DOC, XLSX, XLS. To change, edit the $allowed array in submit-referral.php and documents.php:")
+h2("Allowed file types")
+body("Currently: PDF, DOCX, DOC, XLSX, XLS. To change, edit the $allowed array in both submit-referral.php and documents.php:")
 code("$allowed = ['pdf','docx','doc','xlsx','xls'];")
 
-heading2("Maximum File Size")
-body("The app enforces 10MB. Change the $maxSize variable in submit-referral.php:")
-code("$maxSize = 10 * 1024 * 1024; // 10MB — change 10 to desired MB")
-note("PHP itself has upload limits in php.ini. You may also need to change upload_max_filesize and post_max_size in php.ini if you raise the limit.")
+h2("Maximum file size")
+body("The app enforces 10MB. Change $maxSize in submit-referral.php:")
+code("$maxSize = 10 * 1024 * 1024; // change 10 to desired MB")
+note("PHP also has its own upload limit in php.ini. You may need to increase upload_max_filesize and post_max_size if you raise the limit above 8MB.")
 
-heading2("Upload Folder")
-body("All uploads go to the uploads/ folder in the project root. To change location, find move_uploaded_file() calls in submit-referral.php and documents.php and update the destination path.")
+h2("Upload folder")
+body("Files are saved to the uploads/ folder in the project directory. This folder is local — files are NOT stored in Supabase. Every computer has its own local uploads/ folder.")
+note("If you need files to be shared across computers, consider using Supabase Storage (supabase.com/docs/guides/storage) and updating the upload code in submit-referral.php and documents.php.")
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 14. ADDING NEW PAGES
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("14. Adding New Pages")
-body("Every new page follows the same template. Copy this skeleton into a new .php file:")
+h1("14. Adding New Pages")
+body("Copy this skeleton into a new .php file in the project root:")
 code("<?php")
 code("require_once 'includes/db.php';")
 code("require_once 'includes/auth.php';")
@@ -433,131 +540,171 @@ code("$user   = currentUser();")
 code("$uid    = currentUserId();")
 code("$unread = unreadNotificationCount($pdo, $uid);")
 code("?>")
-code("<!DOCTYPE html>")
-code("<html lang=\"en\">")
-code("<head>")
+code("<!DOCTYPE html><html lang=\"en\"><head>")
 code("    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css\">")
 code("    <link rel=\"stylesheet\" href=\"assets/css/style.css\">")
-code("</head>")
-code("<body>")
+code("</head><body>")
 code("<div class=\"app-wrapper\">")
 code("    <?php include 'includes/sidebar.php'; ?>")
 code("    <div class=\"main-content\">")
-code("        <!-- top-header goes here -->")
+code("        <!-- copy any top-header block from another page -->")
 code("        <div class=\"page-body\">")
 code("            <div class=\"page-heading\">")
-code("                <div><h1>Page Title</h1></div>")
+code("                <div><h1>Your Page Title</h1></div>")
 code("            </div>")
-code("            <!-- Your content here -->")
+code("            <!-- your content here -->")
 code("        </div>")
 code("    </div>")
 code("</div>")
 code("<script src=\"assets/js/main.js\"></script>")
 code("</body></html>")
 
-heading2("Adding a new sidebar link")
-body("Open includes/sidebar.php. Find the section matching the role you want to add the link to, then add a new line:")
+h2("Adding a sidebar link")
+body("Open includes/sidebar.php, find the role section you want, and add:")
 code("<?= navItem('your-page.php', 'icon-name', 'Link Label', 'your-page.php', $page) ?>")
-body("The second argument is a Bootstrap Icons icon name (without 'bi-'). Browse icons at https://icons.getbootstrap.com")
+body("Browse Bootstrap icon names at:  https://icons.getbootstrap.com")
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 15. EMAIL NOTIFICATIONS
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("15. Email Notifications")
-body("The current system uses in-app notifications only. To add real email sending, integrate PHP Mailer or a transactional email service (e.g. Mailgun, SendGrid).")
+h1("15. Email Notifications")
+body("The portal currently sends in-app notifications only. Real email delivery requires an SMTP service or transactional email provider.")
 
-heading2("Where to add email sending")
-body("In includes/functions.php, the addNotification() function is called whenever a notification is created. Add your email sending code there:")
+h2("Recommended providers (free tiers available)")
+table2(
+    ["Provider", "Free Tier", "How to integrate"],
+    [
+        ["Resend",     "3,000 emails/month", "API key + curl or SDK in PHP"],
+        ["Mailgun",    "100 emails/day",     "SMTP or API"],
+        ["SendGrid",   "100 emails/day",     "SMTP or API"],
+        ["PHPMailer",  "SMTP (your account)","Composer: composer require phpmailer/phpmailer"],
+    ]
+)
+
+h2("Where to add email sending")
+body("Open includes/functions.php. The addNotification() function is called every time a notification is created. Add your email code inside it:")
 code("function addNotification($pdo, $userId, $title, $message) {")
-code("    // existing DB insert...")
-code("    ")
-code("    // Add email sending here:")
-code("    // $userEmail = ...fetch from DB...")
-code("    // mail($userEmail, $title, $message);")
-code("    // or use PHPMailer / an SMTP service")
+code("    // existing DB insert (keep this) ...")
+code("")
+code("    // Add email sending below:")
+code("    $stmt = $pdo->prepare('SELECT email, consent_email FROM users WHERE id=?');")
+code("    $stmt->execute([$userId]);")
+code("    $u = $stmt->fetch();")
+code("    if ($u && $u['consent_email']) {")
+code("        // mail($u['email'], $title, $message); // basic PHP mail()")
+code("        // or use PHPMailer / Resend API here")
+code("    }")
 code("}")
-note("Only send emails to users where consent_email = 1 (Spam Act 2003 compliance).")
+note("Only send emails when consent_email = 1 to comply with the Spam Act 2003.")
 
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 # 16. COMPLIANCE NOTES
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("16. Compliance Notes (Privacy Act 1988 / Spam Act 2003)")
+h1("16. Compliance Notes  —  Privacy Act 1988 & Spam Act 2003")
 
-heading2("Client Consent")
-body("Every referral submission requires a consent checkbox. The consent timestamp (consent_timestamp column) is stored in the database for audit purposes. Do not remove this field.")
+h2("Client Consent (APP 3)")
+body("Every referral submission includes a mandatory consent checkbox. The timestamp of consent is stored in the consent_timestamp column of the referrals table. This field must not be removed.")
 
-heading2("Audit Trail")
-body("Every significant action is logged to the audit_log table via the logAction() function in includes/functions.php. The audit log is accessible to admin and auditor roles at audit.php.")
+h2("Audit Trail (APP 11)")
+body("Every significant action — login, logout, referral submission, status change, commission payment, user approval — is written to the audit_log table via the logAction() function in includes/functions.php. The audit log is accessible to Admin and Auditor roles at audit.php and can be exported as CSV.")
 
-heading2("Data Retention")
-body("The Privacy Act 1988 requires client data to be retained for 7 years. The database does not auto-delete records. Implement a cron job or manual process to anonymise records older than 7 years.")
+h2("Data Retention (APP 11.2)")
+body("The Privacy Act 1988 requires personal data to be kept for 7 years then destroyed or de-identified. The system does not auto-delete records. Implement a manual or scheduled process to anonymise records older than 7 years.")
+body("Anonymisation query example (run in Supabase SQL Editor):")
+code("UPDATE referrals")
+code("SET client_name='[Anonymised]', client_email=NULL, client_phone=NULL")
+code("WHERE date_submitted < NOW() - INTERVAL '7 years';")
 
-heading2("Email Opt-Out")
-body("Users can unsubscribe from email notifications via Settings → uncheck 'Receive email notifications'. This sets consent_email = 0 in the users table.")
+h2("Email Opt-Out (Spam Act 2003)")
+body("Users can unsubscribe from email notifications in Settings → uncheck 'Receive email notifications'. This sets consent_email = 0. Email code must check this field before sending (already built into addNotification()).")
 
-heading2("Password Security")
-body("All passwords are stored as bcrypt hashes using PHP's password_hash(PASSWORD_DEFAULT). Plain text passwords are never stored.")
+h2("Password Security")
+body("All passwords are stored as bcrypt hashes using PHP's password_hash(PASSWORD_DEFAULT). Plain-text passwords are never stored or logged.")
 
-# ═══════════════════════════════════════════════════════════════
+h2("Data in Transit")
+body("The Supabase connection uses sslmode=require, encrypting all data between the PHP server and the database. Use HTTPS in production (certificate from Let's Encrypt or your hosting provider).")
+
+# ════════════════════════════════════════════════════════════════
 # 17. TROUBLESHOOTING
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading1("17. Troubleshooting")
+h1("17. Troubleshooting")
 
-problems = [
+issues = [
     (
-        "White screen / blank page",
-        "Enable PHP error reporting. Add to the top of the file:\n  ini_set('display_errors', 1); error_reporting(E_ALL);\nOr check the Apache error log."
+        "Browser shows 'ERR_CONNECTION_REFUSED'",
+        "The PHP server is not running. Open a terminal in the project folder and run:\n  php -S localhost:8080\nKeep the terminal open while using the portal."
     ),
     (
-        "Database connection failed",
-        "Check includes/db.php — verify DB_HOST, DB_USER, DB_PASS, DB_NAME match your MySQL setup. Make sure MySQL is running (check XAMPP control panel)."
+        "Installer shows 'pdo_pgsql driver not found'",
+        "The PHP PostgreSQL extension is missing.\n"
+        "  Mac (Homebrew):  brew install php\n"
+        "  Ubuntu/Debian:   sudo apt install php-pgsql\n"
+        "  Windows (XAMPP): open php.ini, uncomment extension=pdo_pgsql, restart Apache."
     ),
     (
-        "'Pending admin approval' on login",
-        "The new account has status='pending'. Log in as admin and go to admin-users.php to approve it."
+        "Installer shows 'could not connect to server'",
+        "Check the Host field — it must be the full Supabase host like db.abcdefghijkl.supabase.co\n"
+        "Also check your internet connection, and that the Supabase project is not paused (free projects pause after 1 week of inactivity — unpause in the Supabase dashboard)."
     ),
     (
-        "File upload not working",
-        "Check that the uploads/ folder exists and is writable (chmod 775). Check PHP's upload_max_filesize in php.ini (should be at least 10M)."
+        "Installer shows 'wrong password'",
+        "Re-check the database password from Supabase Dashboard → Project Settings → Database.\n"
+        "Note: this is the DATABASE password, not your Supabase login password."
     ),
     (
-        "Commission not calculated on settle",
-        "The broker must enter the Broker Upfront Commission amount in the modal when changing status to 'settled'. Without that value, no commission is created."
+        "'Pending admin approval' message on login",
+        "The account has status = 'pending'. Log in as Admin, go to admin-users.php, and click Approve next to the user."
+    ),
+    (
+        "Supabase project is paused",
+        "Free Supabase projects pause after approximately 1 week of inactivity. Go to supabase.com, open your project, and click 'Restore project'. It takes about 1 minute to resume."
+    ),
+    (
+        "Commission not calculated when settling",
+        "The broker must enter the Broker Upfront Commission amount in the status update modal when changing status to 'Settled'. Without that value, no commission record is created."
+    ),
+    (
+        "File upload fails",
+        "Check the uploads/ folder exists and is writable (chmod 775 uploads/ on Mac/Linux).\n"
+        "Also check PHP's upload_max_filesize in php.ini is at least 10M."
     ),
     (
         "Dashboard chart not showing",
-        "Chart.js is loaded from CDN. Check your internet connection, or download chart.umd.min.js and serve it locally from assets/js/."
+        "Chart.js is loaded from CDN — check your internet connection. Alternatively, download chart.umd.min.js and reference it locally in dashboard.php."
     ),
     (
-        "Session expires immediately",
-        "Check that PHP sessions are configured. Increase session.gc_maxlifetime in php.ini. You can also add session_set_cookie_params() before session_start() in auth.php."
+        "Icons showing as empty boxes",
+        "Bootstrap Icons is loaded from CDN. Check internet connection or download the icon font and serve it locally from assets/css/."
     ),
     (
-        "Icons not showing (just text)",
-        "Bootstrap Icons is loaded from CDN. Check internet connection or download the icon font and serve it from assets/css/."
+        "White screen / PHP error",
+        "Add this to the top of the failing file temporarily:\n"
+        "  ini_set('display_errors', 1); error_reporting(E_ALL);\n"
+        "This will show the error message. Remove it before using the portal."
     ),
 ]
-for prob, sol in problems:
-    heading2("Problem: " + prob)
+
+for prob, sol in issues:
+    h2("Problem: " + prob)
     body("Solution: " + sol)
 
-# ═══════════════════════════════════════════════════════════════
-# Footer
-# ═══════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# FOOTER
+# ════════════════════════════════════════════════════════════════
 doc.add_page_break()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = p.add_run("Referral Network Portal — Confidential Developer Manual")
-r.font.size = Pt(10); r.font.color.rgb = RGBColor(0x71,0x80,0x96)
+p.paragraph_format.space_before = Pt(60)
+r = p.add_run("Referral Network Portal  —  Confidential Developer Manual")
+r.font.size = Pt(10); r.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
+
 doc.add_paragraph()
 p2 = doc.add_paragraph()
 p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p2.add_run(f"© {datetime.date.today().year} Network Portal. For professional use only.").font.size = Pt(9)
+p2.add_run(f"© {datetime.date.today().year} Network Portal · Supabase Edition · Professional Use Only").font.size = Pt(9)
 
-# Save
-output = "MANUAL.docx"
-doc.save(output)
-print(f"✅  Manual saved to {output}")
+doc.save("MANUAL.docx")
+print("✅  MANUAL.docx saved successfully.")
