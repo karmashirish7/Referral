@@ -23,8 +23,8 @@ $where  = [];
 $params = [];
 if ($actionFilter) { $where[] = 'action = ?';            $params[] = $actionFilter; }
 if ($userFilter)   { $where[] = 'al.user_id = ?';        $params[] = $userFilter; }
-if ($dateFrom)     { $where[] = 'DATE(al.created_at) >= ?'; $params[] = $dateFrom; }
-if ($dateTo)       { $where[] = 'DATE(al.created_at) <= ?'; $params[] = $dateTo; }
+if ($dateFrom)     { $where[] = 'al.created_at::date >= ?'; $params[] = $dateFrom; }
+if ($dateTo)       { $where[] = 'al.created_at::date <= ?'; $params[] = $dateTo; }
 if ($search)       { $where[] = '(al.user_name LIKE ? OR al.description LIKE ? OR al.action LIKE ?)';
     $like = "%$search%"; $params = array_merge($params, [$like,$like,$like]); }
 

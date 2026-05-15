@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([$name, $email, $hash, $role, $tier, $rate, $phone, $suburb, $state, $consent, $avatar]);
-            $uid = $pdo->lastInsertId();
+            $uid = lastId($pdo, 'users');
 
             logAction($pdo, $uid, $name, 'registered', 'user', $uid, "New $role account registered: $email");
 

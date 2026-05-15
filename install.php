@@ -1,117 +1,60 @@
 <?php
 // ============================================================
-// Referral Network Portal — Web Installer
-// Visit this page once to set up the database and config file.
-// Delete or rename this file after setup is complete.
+// Referral Network Portal — Supabase Setup Wizard
 // ============================================================
 
 $configFile = __DIR__ . '/config.php';
-$sqlFile    = __DIR__ . '/database.sql';
+$step = 1;
+$error = '';
 
-$step    = 1;
-$error   = '';
-$success = '';
-
-// ── Already installed? ─────────────────────────────────────
 if (file_exists($configFile) && !isset($_GET['reinstall'])) {
     header("Location: index.php");
     exit;
 }
 
-// ── Handle form submit ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $host   = trim($_POST['db_host'] ?? 'localhost');
-    $user   = trim($_POST['db_user'] ?? 'root');
+    $host   = trim($_POST['db_host'] ?? '');
+    $port   = trim($_POST['db_port'] ?? '5432');
+    $user   = trim($_POST['db_user'] ?? 'postgres');
     $pass   = $_POST['db_pass'] ?? '';
-    $dbname = trim($_POST['db_name'] ?? 'referral_portal');
+    $dbname = trim($_POST['db_name'] ?? 'postgres');
 
-    // Step 1: test connection without selecting a database
-    // If host is 'localhost', also try '127.0.0.1' as fallback (avoids Unix socket issues on Mac/Linux)
-    $triedHosts = [$host];
-    if ($host === 'localhost') $triedHosts[] = '127.0.0.1';
-
-    $pdo = null;
-    foreach ($triedHosts as $tryHost) {
+    if (!$host || !$pass) {
+        $error = 'Host and password are required.';
+    } else {
         try {
-            $pdo  = new PDO(
-                "mysql:host=$tryHost;charset=utf8mb4",
+            $pdo = new PDO(
+                "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require",
                 $user, $pass,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
-            $host = $tryHost; // use whichever host worked
-            break;
+            // Quick check — list tables
+            $pdo->query("SELECT 1");
         } catch (PDOException $e) {
-            $lastEx = $e;
-        }
-    }
-
-    if (!$pdo) {
-        $rawMsg = $lastEx->getMessage();
-        if (strpos($rawMsg, '2002') !== false) {
-            $error = "MySQL is not running on this computer (or not installed).<br>"
-                   . "Please start MySQL first, then try again.<br><br>"
-                   . "<strong>How to start MySQL:</strong><br>"
-                   . "• XAMPP → open XAMPP Control Panel → click <em>Start</em> next to MySQL<br>"
-                   . "• MAMP → open MAMP → click <em>Start Servers</em><br>"
-                   . "• Mac (Homebrew) → run: <code>brew services start mysql</code><br>"
-                   . "• Windows (standalone) → run: <code>net start MySQL80</code><br><br>"
-                   . "<em>Technical detail: $rawMsg</em>";
-        } elseif (strpos($rawMsg, '1045') !== false) {
-            $error = "Access denied — wrong username or password. Check your MySQL credentials and try again.<br><em>$rawMsg</em>";
-        } else {
-            $error = "Cannot connect to MySQL: $rawMsg";
-        }
-    }
-
-    if (!$error && $pdo) {
-        // Step 2: create database if it doesn't exist
-        try {
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $pdo->exec("USE `$dbname`");
-        } catch (PDOException $e) {
-            $error = "Failed to create database: " . $e->getMessage();
-        }
-    }
-
-    if (!$error) {
-        // Step 3: import SQL file (split on semicolons, run each statement)
-        $sql = file_get_contents($sqlFile);
-        // Remove the CREATE DATABASE / USE lines — we've already done that
-        $sql = preg_replace('/^CREATE DATABASE.*?;/im', '', $sql);
-        $sql = preg_replace('/^USE.*?;/im', '', $sql);
-
-        $statements = array_filter(
-            array_map('trim', explode(';', $sql)),
-            fn($s) => strlen($s) > 3
-        );
-
-        try {
-            foreach ($statements as $stmt) {
-                $pdo->exec($stmt);
-            }
-        } catch (PDOException $e) {
-            // Ignore duplicate entry errors (re-install) but catch real errors
-            if (strpos($e->getMessage(), 'Duplicate entry') === false &&
-                strpos($e->getMessage(), 'already exists') === false) {
-                $error = "SQL import error: " . $e->getMessage();
+            $msg = $e->getMessage();
+            if (strpos($msg, 'password') !== false || strpos($msg, '28') !== false) {
+                $error = "Wrong password or username. Double-check your Supabase database password.";
+            } elseif (strpos($msg, 'could not connect') !== false || strpos($msg, 'timeout') !== false) {
+                $error = "Could not reach the host. Check the Supabase host address and that your internet is connected.";
+            } else {
+                $error = "Connection failed: $msg";
             }
         }
     }
 
     if (!$error) {
-        // Step 4: write config.php
-        $configContent = "<?php\n"
-            . "// Auto-generated by install.php — do not edit manually.\n"
-            . "// Run install.php?reinstall=1 to reconfigure.\n"
+        $config = "<?php\n"
+            . "// Auto-generated by install.php\n"
             . "define('DB_HOST', " . var_export($host,   true) . ");\n"
+            . "define('DB_PORT', " . var_export($port,   true) . ");\n"
             . "define('DB_USER', " . var_export($user,   true) . ");\n"
             . "define('DB_PASS', " . var_export($pass,   true) . ");\n"
             . "define('DB_NAME', " . var_export($dbname, true) . ");\n";
 
-        if (file_put_contents($configFile, $configContent) === false) {
-            $error = "Could not write config.php. Check folder write permissions.";
+        if (file_put_contents($configFile, $config) === false) {
+            $error = "Cannot write config.php — check folder permissions.";
         } else {
-            $step = 2; // success screen
+            $step = 2;
         }
     }
 }
@@ -121,121 +64,171 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Install — Referral Network Portal</title>
+    <title>Setup — Referral Network Portal</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f9;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-        .card{background:#fff;border-radius:12px;padding:40px;width:100%;max-width:480px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f9;
+             min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+        .card{background:#fff;border-radius:12px;padding:40px;width:100%;max-width:500px;
+              box-shadow:0 4px 20px rgba(0,0,0,.08)}
         .logo{text-align:center;margin-bottom:28px}
-        .logo-icon{width:52px;height:52px;background:#1F3864;color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 10px}
+        .logo-icon{width:52px;height:52px;background:#1F3864;color:#fff;border-radius:12px;
+                   display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 10px}
         h1{font-size:20px;font-weight:700;color:#1a202c;text-align:center}
         .subtitle{font-size:13px;color:#718096;text-align:center;margin-top:4px}
-        .step-badge{display:inline-flex;align-items:center;gap:6px;background:#f0f4f9;border-radius:20px;padding:4px 12px;font-size:12px;color:#1F3864;font-weight:600;margin:0 auto 20px;display:flex;width:fit-content}
-        .form-group{margin-bottom:16px}
-        .form-group label{display:block;font-size:12px;font-weight:500;color:#718096;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
-        .form-group input{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:9px 12px;font-size:13px;color:#1a202c}
+        .steps{display:flex;gap:0;margin:20px 0;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+        .step{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;color:#718096;background:#f8fafc}
+        .step.active{background:#1F3864;color:#fff}
+        .step.done{background:#d1fae5;color:#065f46}
+        .form-group{margin-bottom:14px}
+        .form-group label{display:block;font-size:11px;font-weight:600;color:#718096;
+                          text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+        .form-group input,.form-group select{width:100%;border:1px solid #e2e8f0;border-radius:6px;
+                           padding:9px 12px;font-size:13px;color:#1a202c;background:#fff}
         .form-group input:focus{outline:none;border-color:#1F3864;box-shadow:0 0 0 3px rgba(31,56,100,.1)}
         .hint{font-size:11px;color:#718096;margin-top:3px}
-        .btn{width:100%;background:#1F3864;color:#fff;border:none;padding:11px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;transition:background .15s}
+        .btn{width:100%;background:#1F3864;color:#fff;border:none;padding:11px;border-radius:7px;
+             font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:background .15s}
         .btn:hover{background:#172d55}
-        .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:8px}
-        .alert-success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px}
-        .checklist{list-style:none;margin:16px 0}
-        .checklist li{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:#1a202c;border-bottom:1px solid #f1f5f9}
-        .checklist li i{color:#059669;font-size:15px}
-        .login-btn{display:block;width:100%;background:#1F3864;color:#fff;border:none;padding:11px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;margin-top:20px}
+        .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;
+                     padding:12px 16px;margin-bottom:16px;font-size:13px}
+        .info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;
+                  margin-bottom:16px;font-size:13px;color:#1e40af}
+        .info-box strong{display:block;margin-bottom:6px;font-size:13px}
+        .info-box ol{margin-left:16px;line-height:2}
+        code{background:#dbeafe;padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace}
+        .row{display:grid;grid-template-columns:3fr 1fr;gap:10px}
+        .checklist{list-style:none;margin:12px 0}
+        .checklist li{display:flex;align-items:center;gap:8px;padding:7px 0;
+                      font-size:13px;border-bottom:1px solid #f1f5f9}
+        .checklist li i{color:#059669;font-size:15px;flex-shrink:0}
+        .login-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+                   background:#1F3864;color:#fff;border:none;padding:11px;border-radius:7px;
+                   font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;margin-top:20px}
         .login-btn:hover{background:#172d55}
-        code{background:#f1f5f9;padding:2px 7px;border-radius:4px;font-size:12px;color:#1F3864}
-        .defaults-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:12px;color:#1e40af;margin-bottom:16px}
-        .defaults-note strong{display:block;margin-bottom:4px}
-        footer{margin-top:24px;font-size:11px;color:#718096;text-align:center}
+        .accounts{background:#f8fafc;border-radius:8px;padding:12px 14px;font-size:12px;
+                  color:#718096;margin-top:14px;line-height:1.8}
+        .accounts strong{color:#1a202c}
+        footer{margin-top:20px;font-size:11px;color:#718096;text-align:center}
+        .divider{border:none;border-top:1px solid #e2e8f0;margin:20px 0}
     </style>
 </head>
 <body>
-
 <div class="card">
     <div class="logo">
         <div class="logo-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
         <h1>Referral Network Portal</h1>
-        <p class="subtitle">First-time Setup Wizard</p>
+        <p class="subtitle">Supabase Database Setup</p>
     </div>
 
     <?php if ($step === 1): ?>
 
-        <div class="step-badge"><i class="bi bi-database"></i> Step 1 of 1 — Database Setup</div>
+    <div class="steps">
+        <div class="step active">1 · Supabase Schema</div>
+        <div class="step">2 · Connect</div>
+        <div class="step">3 · Done</div>
+    </div>
 
-        <?php if ($error): ?>
-            <div class="alert-error"><i class="bi bi-exclamation-circle" style="margin-top:1px;flex-shrink:0"></i><div><?= htmlspecialchars($error) ?></div></div>
-        <?php endif; ?>
+    <!-- Step 1 instructions -->
+    <div class="info-box">
+        <strong><i class="bi bi-1-circle-fill"></i> First — import the schema into Supabase</strong>
+        <ol>
+            <li>Go to <strong>supabase.com</strong> → your project</li>
+            <li>Click <strong>SQL Editor</strong> in the left sidebar</li>
+            <li>Click <strong>New Query</strong></li>
+            <li>Open <code>database.sql</code> from this project, copy everything, paste it in, click <strong>Run</strong></li>
+            <li>You should see "Success" — then come back here</li>
+        </ol>
+    </div>
 
-        <div class="defaults-note">
-            <strong><i class="bi bi-info-circle"></i> Before you start — make sure MySQL is running</strong>
-            • XAMPP: open Control Panel → click <strong>Start</strong> next to MySQL<br>
-            • MAMP: open MAMP → click <strong>Start Servers</strong><br>
-            • Homebrew (Mac): <code>brew services start mysql</code><br>
-            • Default user: <code>root</code> &nbsp;|&nbsp; Default password: <em>blank</em>
+    <hr class="divider">
+
+    <!-- Step 2: connection details -->
+    <div class="info-box" style="background:#f0fdf4;border-color:#bbf7d0;color:#065f46">
+        <strong><i class="bi bi-2-circle-fill"></i> Then — get your connection details</strong>
+        Supabase Dashboard → <strong>Project Settings</strong> → <strong>Database</strong> → scroll to <em>Connection parameters</em>
+    </div>
+
+    <?php if ($error): ?>
+        <div class="alert-error"><i class="bi bi-exclamation-circle"></i> <?= $error ?></div>
+    <?php endif; ?>
+
+    <form method="POST">
+        <div class="form-group row">
+            <div>
+                <label>Supabase Host</label>
+                <input type="text" name="db_host"
+                       value="<?= htmlspecialchars($_POST['db_host'] ?? '') ?>"
+                       placeholder="db.xxxxxxxxxxxx.supabase.co" required>
+                <div class="hint">Project Settings → Database → Host</div>
+            </div>
+            <div>
+                <label>Port</label>
+                <input type="text" name="db_port"
+                       value="<?= htmlspecialchars($_POST['db_port'] ?? '5432') ?>">
+            </div>
         </div>
-
-        <form method="POST">
-            <div class="form-group">
-                <label>Database Host</label>
-                <input type="text" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? '127.0.0.1') ?>" required>
-                <div class="hint">Use <code>127.0.0.1</code> (recommended) or <code>localhost</code></div>
-            </div>
-            <div class="form-group">
-                <label>MySQL Username</label>
-                <input type="text" name="db_user" value="<?= htmlspecialchars($_POST['db_user'] ?? 'root') ?>" required>
-            </div>
-            <div class="form-group">
-                <label>MySQL Password</label>
-                <input type="password" name="db_pass" value="<?= htmlspecialchars($_POST['db_pass'] ?? '') ?>" placeholder="Leave blank if none">
-            </div>
-            <div class="form-group">
-                <label>Database Name</label>
-                <input type="text" name="db_name" value="<?= htmlspecialchars($_POST['db_name'] ?? 'referral_portal') ?>" required>
-                <div class="hint">Will be created automatically if it doesn't exist.</div>
-            </div>
-            <button type="submit" class="btn"><i class="bi bi-play-fill"></i> &nbsp;Run Setup</button>
-        </form>
+        <div class="form-group">
+            <label>Database User</label>
+            <input type="text" name="db_user"
+                   value="<?= htmlspecialchars($_POST['db_user'] ?? 'postgres') ?>">
+            <div class="hint">Default is <code>postgres</code></div>
+        </div>
+        <div class="form-group">
+            <label>Database Password</label>
+            <input type="password" name="db_pass" placeholder="Your Supabase database password" required>
+            <div class="hint">Project Settings → Database → Database Password</div>
+        </div>
+        <div class="form-group">
+            <label>Database Name</label>
+            <input type="text" name="db_name"
+                   value="<?= htmlspecialchars($_POST['db_name'] ?? 'postgres') ?>">
+            <div class="hint">Default is <code>postgres</code></div>
+        </div>
+        <button type="submit" class="btn"><i class="bi bi-plug-fill"></i> &nbsp;Connect &amp; Save</button>
+    </form>
 
     <?php else: ?>
 
-        <!-- Success Screen -->
-        <div style="text-align:center;margin-bottom:20px">
-            <div style="width:60px;height:60px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#059669">
-                <i class="bi bi-check-lg"></i>
-            </div>
-            <h1 style="color:#059669">Setup Complete!</h1>
-            <p class="subtitle" style="margin-top:6px">Database created and configured successfully.</p>
+    <div class="steps">
+        <div class="step done"><i class="bi bi-check"></i> Schema</div>
+        <div class="step done"><i class="bi bi-check"></i> Connected</div>
+        <div class="step active">3 · Done</div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:20px">
+        <div style="width:60px;height:60px;background:#d1fae5;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;color:#059669">
+            <i class="bi bi-check-lg"></i>
         </div>
+        <h1 style="color:#059669">Connected!</h1>
+        <p class="subtitle" style="margin-top:6px">Supabase is configured and ready.</p>
+    </div>
 
-        <ul class="checklist">
-            <li><i class="bi bi-check-circle-fill"></i> Connected to MySQL</li>
-            <li><i class="bi bi-check-circle-fill"></i> Database <code><?= htmlspecialchars($dbname ?? 'referral_portal') ?></code> created</li>
-            <li><i class="bi bi-check-circle-fill"></i> All tables imported</li>
-            <li><i class="bi bi-check-circle-fill"></i> Sample data loaded</li>
-            <li><i class="bi bi-check-circle-fill"></i> <code>config.php</code> saved</li>
-        </ul>
+    <ul class="checklist">
+        <li><i class="bi bi-check-circle-fill"></i> Supabase connection verified</li>
+        <li><i class="bi bi-check-circle-fill"></i> Credentials saved to <code>config.php</code></li>
+        <li><i class="bi bi-check-circle-fill"></i> Works from any computer — no local MySQL needed</li>
+    </ul>
 
-        <div class="defaults-note" style="margin-top:16px">
-            <strong><i class="bi bi-people"></i> Default login accounts (password: <code>password</code>)</strong>
-            Partner: <code>alex@partner.com</code><br>
-            Broker: <code>broker@networkportal.com</code><br>
-            Admin: <code>admin@networkportal.com</code><br>
-            Auditor: <code>auditor@networkportal.com</code>
-        </div>
+    <div class="accounts">
+        <strong>Default login accounts</strong> (password: <code>password</code>)<br>
+        Partner &nbsp;→ <code>alex@partner.com</code><br>
+        Broker &nbsp;&nbsp;→ <code>broker@networkportal.com</code><br>
+        Admin &nbsp;&nbsp;→ <code>admin@networkportal.com</code><br>
+        Auditor → <code>auditor@networkportal.com</code>
+    </div>
 
-        <a href="index.php" class="login-btn"><i class="bi bi-arrow-right"></i> &nbsp;Go to Login</a>
+    <a href="index.php" class="login-btn"><i class="bi bi-arrow-right"></i> Go to Login</a>
 
-        <p style="text-align:center;margin-top:16px;font-size:12px;color:#718096">
-            <i class="bi bi-shield-exclamation"></i>
-            For security, you may delete <code>install.php</code> after logging in.
-        </p>
+    <p style="text-align:center;margin-top:14px;font-size:12px;color:#718096">
+        <i class="bi bi-shield-exclamation"></i> You can delete <code>install.php</code> after logging in.
+    </p>
 
     <?php endif; ?>
 </div>
 
-<footer>&copy; <?= date('Y') ?> Referral Network Portal — Professional Use Only</footer>
+<footer>&copy; <?= date('Y') ?> Referral Network Portal</footer>
 </body>
 </html>

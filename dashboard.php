@@ -33,10 +33,10 @@ for ($i = 5; $i >= 0; $i--) {
     $m = date('m', strtotime("-$i months"));
     $months[] = date('M', strtotime("-$i months"));
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE partner_id = ? AND YEAR(date_submitted)=? AND MONTH(date_submitted)=? AND status IN ('approved','settled')");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE partner_id = ? AND EXTRACT(YEAR FROM date_submitted)=? AND EXTRACT(MONTH FROM date_submitted)=? AND status IN ('approved','settled')");
     $stmt->execute([$uid, $y, $m]); $approved_data[] = $stmt->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE partner_id = ? AND YEAR(date_submitted)=? AND MONTH(date_submitted)=? AND status='pending'");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE partner_id = ? AND EXTRACT(YEAR FROM date_submitted)=? AND EXTRACT(MONTH FROM date_submitted)=? AND status='pending'");
     $stmt->execute([$uid, $y, $m]); $pending_data[] = $stmt->fetchColumn();
 }
 

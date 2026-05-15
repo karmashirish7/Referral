@@ -6,9 +6,16 @@
 // Generate a unique referral number: REF-YYYY-NNNN
 function generateRefNumber($pdo) {
     $year = date('Y');
-    $stmt = $pdo->query("SELECT COUNT(*) FROM referrals WHERE YEAR(date_submitted) = $year");
+    // PostgreSQL uses EXTRACT instead of YEAR()
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referrals WHERE EXTRACT(YEAR FROM date_submitted) = ?");
+    $stmt->execute([$year]);
     $count = (int)$stmt->fetchColumn() + 1;
     return 'REF-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+}
+
+// PostgreSQL lastInsertId requires the sequence name
+function lastId($pdo, $table) {
+    return $pdo->lastInsertId($table . '_id_seq');
 }
 
 // Calculate partner commission based on tier rate

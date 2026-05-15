@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $clientSuburb, $clientState, $loanType, $estAmount,
                 $consent, $consentTs, $notes, $status, $docPath, $docName
             ]);
-            $refId = $pdo->lastInsertId();
+            $refId = lastId($pdo, 'referrals');
 
             // Save document record
             if ($docPath) {

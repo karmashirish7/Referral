@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hash    = password_hash($newPass, PASSWORD_DEFAULT);
                 $pdo->prepare("INSERT INTO users (name,email,password,role,status,tier,commission_rate,phone,avatar) VALUES (?,?,?,?,?,?,?,?,?)")
                     ->execute([$newName,$newEmail,$hash,$newRole,$newStatus,$newTier,$newRate,$newPhone,$avatar]);
-                $newId = $pdo->lastInsertId();
+                $newId = lastId($pdo, 'users');
                 logAction($pdo, $uid, $user['name'], 'user_created', 'user', $newId, "Admin created account for $newName ($newEmail) — role: $newRole");
                 if ($newStatus === 'active') {
                     addNotification($pdo, $newId, 'Account Created', 'Your account has been created by an administrator. You can now log in.');

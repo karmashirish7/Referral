@@ -36,7 +36,7 @@ if ($statusFilter) {
 }
 
 if ($dateFilter) {
-    $where[]  = 'DATE(r.date_submitted) = ?';
+    $where[]  = 'r.date_submitted::date = ?';
     $params[] = $dateFilter;
 }
 
