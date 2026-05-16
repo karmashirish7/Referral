@@ -2,13 +2,12 @@
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
 
-// Redirect if already logged in
 if (isLoggedIn()) {
     $role = currentRole();
-    if ($role === 'broker')  header("Location: pipeline.php");
-    elseif ($role === 'admin')   header("Location: admin-users.php");
-    elseif ($role === 'auditor') header("Location: audit.php");
-    else                         header("Location: dashboard.php");
+    if ($role === 'broker')       header("Location: pipeline.php");
+    elseif ($role === 'admin')    header("Location: admin-users.php");
+    elseif ($role === 'auditor')  header("Location: audit.php");
+    else                          header("Location: dashboard.php");
     exit;
 }
 
@@ -22,9 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email || !$password) {
         $error = 'Please enter your email and password.';
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        $user = $sb->from('users')->eq('email', $email)->single();
 
         if ($user && password_verify($password, $user['password'])) {
             if ($user['status'] === 'pending') {
@@ -38,14 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_role'] = $user['role'];
                 $_SESSION['user']      = $user;
 
-                // Audit log
                 require_once 'includes/functions.php';
-                logAction($pdo, $user['id'], $user['name'], 'login', 'user', $user['id'], 'User logged in');
+                logAction($sb, $user['id'], $user['name'], 'login', 'user', $user['id'], 'User logged in');
 
-                if ($role === 'broker')  header("Location: pipeline.php");
-                elseif ($role === 'admin')   header("Location: admin-users.php");
-                elseif ($role === 'auditor') header("Location: audit.php");
-                else                         header("Location: dashboard.php");
+                if ($role === 'broker')       header("Location: pipeline.php");
+                elseif ($role === 'admin')    header("Location: admin-users.php");
+                elseif ($role === 'auditor')  header("Location: audit.php");
+                else                          header("Location: dashboard.php");
                 exit;
             }
         } else {
@@ -65,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="login-page">
-
     <div class="login-card">
         <div class="login-logo">
             <div class="icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
@@ -81,20 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label>Access Role</label>
                 <select name="role">
-                    <option value="partner"  <?= ($_POST['role']??'partner') === 'partner'  ? 'selected' : '' ?>>Partner</option>
-                    <option value="broker"   <?= ($_POST['role']??'') === 'broker'   ? 'selected' : '' ?>>Broker</option>
-                    <option value="admin"    <?= ($_POST['role']??'') === 'admin'    ? 'selected' : '' ?>>Admin</option>
-                    <option value="auditor"  <?= ($_POST['role']??'') === 'auditor'  ? 'selected' : '' ?>>Auditor</option>
+                    <option value="partner" <?= ($_POST['role'] ?? 'partner') === 'partner' ? 'selected' : '' ?>>Partner</option>
+                    <option value="broker"  <?= ($_POST['role'] ?? '') === 'broker'  ? 'selected' : '' ?>>Broker</option>
+                    <option value="admin"   <?= ($_POST['role'] ?? '') === 'admin'   ? 'selected' : '' ?>>Admin</option>
+                    <option value="auditor" <?= ($_POST['role'] ?? '') === 'auditor' ? 'selected' : '' ?>>Auditor</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label>Email Address</label>
-                <input type="email" name="email"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                       placeholder="name@yourcompany.com" required>
+                <input type="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="name@yourcompany.com" required>
             </div>
-
             <div class="form-group">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                     <label style="margin:0">Password</label>
@@ -102,27 +93,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <input type="password" name="password" placeholder="••••••••" required>
             </div>
-
             <button type="submit" class="login-btn">Sign In &nbsp;<i class="bi bi-arrow-right"></i></button>
         </form>
 
         <div class="login-footer-links">
             New to the network? <a href="register.php">Register</a>
         </div>
-
         <div class="security-badges">
             <span class="security-badge"><i class="bi bi-shield-lock-fill"></i> Secure 256-bit Encryption</span>
             <span class="security-badge"><i class="bi bi-patch-check-fill"></i> Compliance Verified</span>
         </div>
     </div>
-
     <div class="login-page-footer">
-        &copy; <?= date('Y') ?> Referral Network Portal. All rights reserved. Professional Use Only.<br>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">System Status</a>
+        &copy; <?= date('Y') ?> Referral Network Portal. All rights reserved.<br>
+        <a href="#">Privacy Policy</a> <a href="#">Terms of Service</a>
     </div>
-
 </div>
 </body>
 </html>
